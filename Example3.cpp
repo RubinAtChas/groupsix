@@ -28,7 +28,6 @@ void displayOcean(Matrix& matrix)
     {
         for (int j = 0; j < 15; j++)
         {
-            matrix.grid[i][j] = Matrix::Water;
             if (matrix.grid[i][j] == Matrix::Water) cout << "  ~";  // DET ÄR BARA VATTEN!
             if (matrix.grid[i][j] == Matrix::Hit) cout << "  X";    // DET ÄR TRÄFF!
             if (matrix.grid[i][j] == Matrix::Miss) cout << "  0";   // DET ÄR MISS!
@@ -38,16 +37,54 @@ void displayOcean(Matrix& matrix)
     }
 
 }
-void placeShip()
+void buildShip()
 {
-    
+    int placeShipX, placeShipY;
+    int ships;
+    int ship1, ship2, ship3, ship4, ship5;
+    if(ship1 == 1)
+    {
+        for(int i = 0; i < 2; i++)
+        {
+            cout << "Place a" << i << "tile ship:";
+            cin >> placeShipX, placeShipY;
+        }
+    }
+}
+
+bool isvalid(int x, int y)
+{
+    if(x >= 0 && x < 15 && y >= 0 && y < 15) { return true; }
+    else return false;
+}
+
+void placeShip(int shipsize, Matrix& matrix)
+{
+    // need 5 ships;
+    int placeShipX, placeShipY;
+        for(int i = 0; i < shipsize; i++)
+        {
+            cout << "Place a " << i << "tile ship:";
+            // cin >> placeShipX, placeShipY;
+            cin >> placeShipX;
+            cin >> placeShipY;
+            isvalid(placeShipX, placeShipY);
+            matrix.grid[placeShipX][placeShipY] = Matrix::Ship;
+        }
 }
 
 
 int main()
 {
     Matrix ocean;
+    int tile;
     intOcean(ocean);
+    displayOcean(ocean);
+    placeShip(3, ocean);
+    /* placeShip(3, ocean);
+    placeShip(3, ocean);
+    placeShip(4, ocean);
+    placeShip(5, ocean); */
     displayOcean(ocean);
     return 0;
 }
