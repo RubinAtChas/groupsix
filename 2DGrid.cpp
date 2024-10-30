@@ -3,14 +3,13 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+
 using namespace std;
 string sysMessage;
 class Matrix
 {
 public:
-    enum CellStatus
-    { Water, Miss, Hit, Ship };
-
+    enum CellStatus { Water, Miss, Hit, Ship };
     CellStatus grid[15][15];
 };
 class Ship
@@ -27,6 +26,18 @@ public:
         : name(name), shipId(id), size(size), isSunk(isSunk),
           positionX(size), positionY(size) {} // Initierar positionerna till storleken
 };
+
+void displayOceanOpponent(Matrix &matrix);
+void displayOceanPlayer(Matrix &matrix);
+void gameGraphics(Matrix &playerOcean, Matrix &opponentOcean);
+bool isvalid(int x, int y);
+void buildShip(vector<Ship>& ships, int size, int arrayIndex, Matrix &matrix);
+void intOcean(Matrix &matrix);
+void playerPlaceShips(vector<Ship>& ships, Matrix &playerOcean);
+void attack(Matrix &playerOcean, Matrix &opponentOcean);
+void switchPlayers();
+void pressEnter();
+
 bool isvalid(int x, int y)
 {
     if (x >= 0 && x < 15 && y >= 0 && y < 15)
@@ -66,10 +77,6 @@ void buildShip(vector<Ship>& ships, int size, int arrayIndex, Matrix &matrix)
             ships[arrayIndex].positionX[i] = convertedX + i;
             ships[arrayIndex].positionY[i] = convertedY;      
         }
-    }
-    else
-    {
-        buildShip(ships, size, arrayIndex, matrix);
     }
 }
 void intOcean(Matrix &matrix)
@@ -141,7 +148,48 @@ vector<Ship> initializeShips()
         return ships;
 }
 
-void gameGraphics(Matrix playerOcean, Matrix opponentOcean)
+void attack(Matrix &playerOcean,Matrix &opponentOcean)
+{
+    sysMessage =+ "Enter coordinates to attack.";
+    char inputX;
+    int inputY;
+    int failSafe = 0;
+    do
+    {
+        gameGraphics(playerOcean, opponentOcean);
+        cout << "Aim: ";
+
+        cin >> inputX;
+        cin >> inputY;
+
+        int convertedX = (int)(inputX - 65);
+        int convertedY = inputY - 1;
+
+        if (isvalid(convertedX, convertedY))
+        {
+            if (opponentOcean.grid[convertedX][convertedY] == Matrix::Water)
+            {
+                opponentOcean.grid[convertedX][convertedY] = Matrix::Miss;
+                sysMessage = "Your shot was a Miss!";
+            }
+            if (opponentOcean.grid[convertedX][convertedY] == Matrix::Ship)
+            {
+                opponentOcean.grid[convertedX][convertedY] = Matrix::Hit;
+                sysMessage = "You hit one of your opponents ships!";
+            }
+        }
+        else
+        {
+            sysMessage = "Invalid coordinates, please try again.\n"
+                "Enter coordinates to attack.";
+            failSafe = 1;
+        }
+    } while (failSafe);
+    gameGraphics(playerOcean, opponentOcean);
+    pressEnter();
+}
+
+void gameGraphics(Matrix &playerOcean, Matrix &opponentOcean)
 {
     system("CLS");
     displayOceanOpponent(opponentOcean);
@@ -158,17 +206,73 @@ void playerPlaceShips(vector<Ship>& ships, Matrix &playerOcean)
         cout << "Place your " << ships[i].name << ": ";
         buildShip(ships, ships[i].size, ships[i].shipId ,playerOcean);
     }
+    sysMessage = "All ships are placed.";
+    gameGraphics(playerOcean, playerOcean);
+    pressEnter();
+}
+
+void switchPlayers()
+{
+    system("CLS");
+    cout << "Next player coming up, previous player look away." << endl;
+    pressEnter();
+}
+
+void pressEnter()
+{
+    cout << "Press ENTER to continue...";
+
+    // Loopar tills användaren trycker exakt ENTER
+    while (true) {
+        cin.clear(); // Återställ inmatningsströmmen om det finns fel
+        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Rensa bufferten
+
+        if (cin.get() == '\n') {
+            break; // Om användaren trycker exakt ENTER, bryter vi loopen
+        } else {
+            cout << "Please press only ENTER to continue...\n"; // Uppmanar att bara trycka ENTER
+        }
+    }
+}
+
+void rapidFireCanon(Matrix& opponent)
+{
+    char x;
+    int y;
+    cout << "Rapid fire Canon Activated, shoots at random coordinates" << endl;
+    srand(time(0));
+    for (int i = 0; i < 4; i++)
+    {
+        int x = rand() % 14;
+        int y = rand() % 14;
+        if (opponent.grid[x][y]==Matrix::Water)
+        {
+            opponent.grid[x][y] = Matrix::Miss;
+        }
+        else if(opponent.grid[x][y]== Matrix::Ship)
+        {
+            opponent.grid[x][y] = Matrix::Hit;
+            cout << "\a";                                                                     // Ljud tillägg
+        }
+    }
 }
 
 int main()
 {
-    Matrix ocean;
-    intOcean(ocean);
-    vector<Ship> ships = initializeShips(); // check if this logic is correct
-    playerPlaceShips(ships, ocean);
-
-    //displayOceanOpponent(ocean);
-    //displayOceanPlayer(ocean);
+    Matrix ocean[2];
+    intOcean(ocean[0]);
+    intOcean(ocean[1]);
+    vector<Ship> playerShips = initializeShips(); // Initialize Player 1 ships
+    vector<Ship> opponentShips = initializeShips(); // Initialize Player 2 ships
+    switchPlayers();
+    playerPlaceShips(playerShips, ocean[0]);
+    switchPlayers();
+    playerPlaceShips(opponentShips, ocean[1]);
+    switchPlayers();
+    do
+    {
+    attack(ocean[0], ocean[1]);
+    } while (1);
 
     return 0;
 }
