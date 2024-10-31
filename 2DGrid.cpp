@@ -3,12 +3,15 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <limits>
+#include <utility>
 
 using namespace std;
 string sysMessage;
 class Matrix
 {
 public:
+    string player;
     enum CellStatus { Water, Miss, Hit, Ship };
     CellStatus grid[15][15];
 };
@@ -22,7 +25,7 @@ public:
     vector<int> positionX;
     vector<int> positionY;
 
-     Ship(const string& name, int id, int size, bool isSunk = false)
+    Ship(const string& name, int id, int size, bool isSunk = false)
         : name(name), shipId(id), size(size), isSunk(isSunk),
           positionX(size), positionY(size) {} // Initierar positionerna till storleken
 };
@@ -33,10 +36,14 @@ void gameGraphics(Matrix &playerOcean, Matrix &opponentOcean);
 bool isvalid(int x, int y);
 void buildShip(vector<Ship>& ships, int size, int arrayIndex, Matrix &matrix);
 void intOcean(Matrix &matrix);
-void playerPlaceShips(vector<Ship>& ships, Matrix &playerOcean);
+void playerPlaceShips(vector<Ship>& ships,Matrix &playerOcean, Matrix &opponentOcean);
 void attack(Matrix &playerOcean, Matrix &opponentOcean);
 void switchPlayers();
 void pressEnter();
+void rapidFireCanon(Matrix& playerOcean, Matrix &opponentOcean, Ship &opponentShips);
+void gameRound(Matrix &playerOcean, Matrix &opponentOcean, Ship &playerShips, Ship &opponentShips);
+void firstAid(Matrix &playerOcean,Matrix &opponentOcean);
+void missile(Matrix &playerOcean,Matrix &opponentOcean);
 
 bool isvalid(int x, int y)
 {
@@ -91,7 +98,7 @@ void intOcean(Matrix &matrix)
 }
 void displayOceanPlayer(Matrix &matrix)
 {
-    cout << "-==================-Player-==================-" << endl;
+    cout << "-================-" << matrix.player << "-================-" << endl;
     cout << " ";
     for (int i = 0; i < 15; i++)
     {
@@ -114,7 +121,7 @@ void displayOceanPlayer(Matrix &matrix)
 }
 void displayOceanOpponent(Matrix &matrix)
 {
-    cout << "-=================-Opponent-=================-" << endl;
+    cout << "-================-" << matrix.player << "-================-" << endl;
     cout << " ";
     for (int i = 0; i < 15; i++)
     {
@@ -150,12 +157,13 @@ vector<Ship> initializeShips()
 
 void attack(Matrix &playerOcean,Matrix &opponentOcean)
 {
-    sysMessage =+ "Enter coordinates to attack.";
+    sysMessage = "Enter coordinates to attack.";
     char inputX;
     int inputY;
     int failSafe = 0;
     do
     {
+        failSafe = 0;
         gameGraphics(playerOcean, opponentOcean);
         cout << "Aim: ";
 
@@ -197,17 +205,17 @@ void gameGraphics(Matrix &playerOcean, Matrix &opponentOcean)
     cout << sysMessage << endl;
 }
 
-void playerPlaceShips(vector<Ship>& ships, Matrix &playerOcean)
+void playerPlaceShips(vector<Ship>& ships,Matrix &playerOcean, Matrix &opponentOcean)
 {
     sysMessage = "Enter coordinats and direction to place (E = East, S = South)";
     for (int i = 4; i >= 0; i--)
     {
-        gameGraphics(playerOcean, playerOcean);
+        gameGraphics(playerOcean, opponentOcean);
         cout << "Place your " << ships[i].name << ": ";
         buildShip(ships, ships[i].size, ships[i].shipId ,playerOcean);
     }
     sysMessage = "All ships are placed.";
-    gameGraphics(playerOcean, playerOcean);
+    gameGraphics(playerOcean, opponentOcean);
     pressEnter();
 }
 
@@ -225,7 +233,7 @@ void pressEnter()
     // Loopar tills användaren trycker exakt ENTER
     while (true) {
         cin.clear(); // Återställ inmatningsströmmen om det finns fel
-        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Rensa bufferten
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Rensa bufferten
 
         if (cin.get() == '\n') {
             break; // Om användaren trycker exakt ENTER, bryter vi loopen
@@ -235,26 +243,115 @@ void pressEnter()
     }
 }
 
-void rapidFireCanon(Matrix& opponent)
+void rapidFireCanon(Matrix& playerOcean, Matrix &opponentOcean)
 {
-    char x;
-    int y;
+    gameGraphics(playerOcean, opponentOcean);
     cout << "Rapid fire Canon Activated, shoots at random coordinates" << endl;
     srand(time(0));
+    
     for (int i = 0; i < 4; i++)
     {
         int x = rand() % 14;
         int y = rand() % 14;
-        if (opponent.grid[x][y]==Matrix::Water)
+        if (opponentOcean.grid[x][y]==Matrix::Water)
         {
-            opponent.grid[x][y] = Matrix::Miss;
+            opponentOcean.grid[x][y] = Matrix::Miss;
         }
-        else if(opponent.grid[x][y]== Matrix::Ship)
+        else if(opponentOcean.grid[x][y]== Matrix::Ship)
         {
-            opponent.grid[x][y] = Matrix::Hit;
-            cout << "\a";                                                                     // Ljud tillägg
+            opponentOcean.grid[x][y] = Matrix::Hit;   
+            cout << "\a";                                         // Ljud tillägg
         }
     }
+    gameGraphics(playerOcean, opponentOcean);
+    pressEnter();
+}
+
+void gameRound(Matrix &playerOcean, Matrix &opponentOcean)
+{
+    int action;
+    sysMessage = "Choose your action.";
+    do
+    {
+        gameGraphics(playerOcean, opponentOcean);
+        cout << "1. Normal attack.\n"
+            "2. Rapid fire.\n"
+            "3. Missile\n"
+            "4. Repaird kit.\n"
+            "Your choice: ";
+        cin >> action;
+        switch (action)
+        {
+        case 1:
+            attack(playerOcean, opponentOcean);
+            break;
+        case 2:
+            rapidFireCanon(playerOcean, opponentOcean);
+            break;
+        case 3:
+            missile(playerOcean, opponentOcean);
+            break;
+        case 4:
+            firstAid(playerOcean, opponentOcean);
+            break;            
+        default:
+            sysMessage = "Invalid input, please try again.";
+            break;
+        }
+    } while (action < 1 || action > 4);
+    swap(playerOcean, opponentOcean);
+    switchPlayers();
+}
+
+void firstAid(Matrix &playerOcean,Matrix &opponentOcean)
+{
+    gameGraphics(playerOcean, opponentOcean);
+    char x;
+    int y;
+    cout << "Aim for the cordinate you want to aid: " << endl;
+    cin >> x;
+    cin >> y;
+    int convertedX = (int(x - 'A'));
+    int convertedY = y - 1;
+    playerOcean.grid[convertedX][convertedY] = Matrix::Ship;
+    gameGraphics(playerOcean, opponentOcean);
+    cout << "Successfully healed the position!" << endl;
+}
+
+void missile(Matrix &playerOcean,Matrix &opponentOcean)
+{
+    sysMessage =+ "Enter a coordinate to attack with the missile.";
+    char inputX;
+    int inputY;
+    int failSafe = 0;
+    do
+    {
+        gameGraphics(playerOcean, opponentOcean);
+        cout << "Aim: ";
+        cin >> inputX;
+        cin >> inputY;
+        int convertedX = (int)(inputX - 65);
+        int convertedY = inputY - 1;
+        for (int i = 0; i < 3; i++)
+        {
+        for (int j = 0; j < 3; j++)
+        {
+            int targetX = convertedX + i;
+            int targetY = convertedY + j;
+            if (isvalid(targetX, targetY)) {
+            if (opponentOcean.grid[targetX][targetY] == Matrix::Water) 
+            {
+                opponentOcean.grid[targetX][targetY] = Matrix::Miss;
+            } else if (opponentOcean.grid[targetX][targetY] == Matrix::Ship)
+                    {
+                        opponentOcean.grid[targetX][targetY] = Matrix::Hit;
+                    }
+                }
+            }
+        }
+    } while (failSafe);
+    gameGraphics(playerOcean, opponentOcean);
+    pressEnter();
 }
 
 int main()
@@ -264,14 +361,19 @@ int main()
     intOcean(ocean[1]);
     vector<Ship> playerShips = initializeShips(); // Initialize Player 1 ships
     vector<Ship> opponentShips = initializeShips(); // Initialize Player 2 ships
-    switchPlayers();
-    playerPlaceShips(playerShips, ocean[0]);
-    switchPlayers();
-    playerPlaceShips(opponentShips, ocean[1]);
-    switchPlayers();
+    cout << "Enter player 1 name: ";
+    cin >> ocean[0].player;
+    cout << "Enter player 2 name: ";
+    cin >> ocean[1].player;
+
+    //switchPlayers();
+    //playerPlaceShips(playerShips, ocean[0], ocean[1]);
+    //switchPlayers();
+    //playerPlaceShips(opponentShips, ocean[1], ocean[0]);
+    //switchPlayers();
     do
     {
-    attack(ocean[0], ocean[1]);
+        gameRound(ocean[0], ocean[1]);
     } while (1);
 
     return 0;
