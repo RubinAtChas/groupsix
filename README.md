@@ -1,4 +1,4 @@
-# gruppsex
+# groupsix
 gameProjectSthlmGroup6
 
 SRS SPELPROJECT
